@@ -77,17 +77,34 @@ final class PermissionsService: ObservableObject {
         onChange.forEach { $0() }
     }
 
-    /// Shows the system prompt (once per app) and adds the app to the Accessibility list.
+    // macOS shows its own permission dialog (with "Open System Settings" and "Deny") only the
+    // first time an app asks. So the first click shows just that dialog; later clicks, when
+    // macOS would stay silent, open System Settings directly. Never both at once.
+    private static let promptedAccessibilityKey = "promptedAccessibility"
+    private static let promptedScreenRecordingKey = "promptedScreenRecording"
+
+    /// Adds the app to the Accessibility list, via the system dialog the first time.
     func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        openAccessibilitySettings()
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: Self.promptedAccessibilityKey) {
+            openAccessibilitySettings()
+        } else {
+            defaults.set(true, forKey: Self.promptedAccessibilityKey)
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
     }
 
-    /// Adds the app to the Screen Recording list. macOS usually needs a relaunch before it takes effect.
+    /// Adds the app to the Screen Recording list, via the system dialog the first time.
+    /// macOS usually needs a relaunch before it takes effect.
     func requestScreenRecording() {
-        if !CGRequestScreenCaptureAccess() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: Self.promptedScreenRecordingKey) {
             openScreenRecordingSettings()
+        } else {
+            defaults.set(true, forKey: Self.promptedScreenRecordingKey)
+            // Shows the dialog and returns false straight away; the answer arrives later via polling.
+            _ = CGRequestScreenCaptureAccess()
         }
         refresh()
     }

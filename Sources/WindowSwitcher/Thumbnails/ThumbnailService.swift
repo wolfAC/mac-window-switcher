@@ -43,7 +43,7 @@ final class ThumbnailService {
         task = Task { [weak self] in
             let content: SCShareableContent
             do {
-                content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+                content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
             } catch {
                 Log.thumbnails.error("SCShareableContent failed: \(error.localizedDescription, privacy: .public)")
                 return

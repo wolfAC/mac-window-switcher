@@ -14,13 +14,17 @@ enum WindowActions {
         let pid = window.pid
         let wasHidden = window.isAppHidden
         let wasMinimized = window.isMinimized
+        let windowID = window.windowID
         queue.async {
             let app = NSRunningApplication(processIdentifier: pid)
             if wasHidden { app?.unhide() }
             if wasMinimized { element.set(kAXMinimizedAttribute, kCFBooleanFalse) }
-            // Setting AXFrontmost works from a background (accessory) app, where
+            // SkyLight focuses this exact window and switches to its Space, like a click would.
+            // Otherwise AXFrontmost, which works from a background (accessory) app where
             // NSRunningApplication.activate() alone can be refused by cooperative activation.
-            AXUIElement.application(pid).set(kAXFrontmostAttribute, kCFBooleanTrue)
+            if !(windowID.map { SkyLight.focus(windowID: $0, pid: pid) } ?? false) {
+                AXUIElement.application(pid).set(kAXFrontmostAttribute, kCFBooleanTrue)
+            }
             element.set(kAXMainAttribute, kCFBooleanTrue)
             element.perform(kAXRaiseAction)
             DispatchQueue.main.async {

@@ -18,9 +18,10 @@ struct WindowInfo: Identifiable {
     let isOnCurrentSpace: Bool
     let screenIndex: Int?
 
-    /// Previews need a live, on-screen window.
+    /// Minimised windows and hidden apps have nothing to capture. Windows on other Spaces
+    /// are attempted; if ScreenCaptureKit can't capture them they keep their last preview or icon.
     var canCapture: Bool {
-        windowID != nil && !isMinimized && !isAppHidden && isOnCurrentSpace
+        windowID != nil && !isMinimized && !isAppHidden
     }
 
     var displayTitle: String {

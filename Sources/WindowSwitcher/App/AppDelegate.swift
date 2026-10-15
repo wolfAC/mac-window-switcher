@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         if permissions.accessibilityGranted {
             recents.stop()
             recents.start()
+            catalog.startWatchingSpaces()
         }
         updateTap()
         statusMenu?.refreshIcon()

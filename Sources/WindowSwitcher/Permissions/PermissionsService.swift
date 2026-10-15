@@ -103,13 +103,30 @@ final class PermissionsService: ObservableObject {
         if let url = URL(string: url) { NSWorkspace.shared.open(url) }
     }
 
+    private static let reopenOnboardingKey = "reopenOnboardingAfterRelaunch"
+
+    /// True once, on the launch that follows `relaunch()`, so onboarding picks up where it left off.
+    static func consumeRelaunchFlag() -> Bool {
+        let flag = UserDefaults.standard.bool(forKey: reopenOnboardingKey)
+        if flag { UserDefaults.standard.removeObject(forKey: reopenOnboardingKey) }
+        return flag
+    }
+
     /// Screen Recording access is only re-read at launch, so offer a relaunch after granting it.
     func relaunch() {
+        UserDefaults.standard.set(true, forKey: Self.reopenOnboardingKey)
         let path = Bundle.main.bundlePath
+        let pid = ProcessInfo.processInfo.processIdentifier
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        task.arguments = ["-c", "sleep 0.5; /usr/bin/open \"$0\"", path]
-        try? task.run()
+        // Wait for this process to exit first; otherwise `open` just re-activates the dying instance.
+        task.arguments = ["-c", "while kill -0 \"$1\" 2>/dev/null; do sleep 0.1; done; /usr/bin/open \"$0\"", path, String(pid)]
+        do {
+            try task.run()
+        } catch {
+            Log.app.error("Relaunch failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
         NSApp.terminate(nil)
     }
 }

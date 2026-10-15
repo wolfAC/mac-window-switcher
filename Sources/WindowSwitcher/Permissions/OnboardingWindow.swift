@@ -101,8 +101,13 @@ private struct OnboardingView: View {
 
             HStack {
                 Spacer()
-                Button(permissions.allGranted ? "Done" : "Continue Without") { done() }
-                    .keyboardShortcut(.defaultAction)
+                if permissions.allGranted {
+                    Button("Done") { done() }
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    // Not the default button, so pressing Return can't skip setup by accident.
+                    Button("Continue Without") { done() }
+                }
             }
         }
         .padding(24)

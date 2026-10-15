@@ -25,7 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         permissions.startPolling(interval: 2)
         syncWithPermissions()
 
-        if (!permissions.allGranted && !preferences.hasCompletedOnboarding) || !permissions.accessibilityGranted {
+        let relaunchedFromOnboarding = PermissionsService.consumeRelaunchFlag()
+        if relaunchedFromOnboarding || (!permissions.allGranted && !preferences.hasCompletedOnboarding) || !permissions.accessibilityGranted {
             onboarding.show()
         }
     }

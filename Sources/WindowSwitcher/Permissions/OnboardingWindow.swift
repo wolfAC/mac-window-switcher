@@ -19,7 +19,10 @@ final class OnboardingWindow {
                 self?.preferences.hasCompletedOnboarding = true
                 self?.window?.close()
             }
-            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
+            let hosting = NSHostingController(rootView: view)
+            // Grow and shrink the window as rows appear (Relaunch hint, previews step).
+            hosting.sizingOptions = [.preferredContentSize]
+            let window = NSWindow(contentViewController: hosting)
             window.title = String(localized: "Welcome to Window Switcher")
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
@@ -43,7 +46,7 @@ private struct OnboardingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Window Switcher needs two permissions")
+            Text("Window Switcher needs a few permissions")
                 .font(.title2.bold())
             Text("They stay on your Mac. Nothing is recorded or sent anywhere.")
                 .foregroundStyle(.secondary)
@@ -74,6 +77,28 @@ private struct OnboardingView: View {
                 }
             }
 
+            if permissions.needsPreviewApproval {
+                PermissionRow(
+                    granted: permissions.previewsAllowed,
+                    title: "Window Previews",
+                    detail: permissions.screenRecordingGranted
+                        ? "macOS asks once more to let the app capture windows directly instead of through its window picker. Click Allow when it asks."
+                        : "After Screen Recording is on, macOS asks once more to let the app capture windows directly.",
+                    buttonTitle: permissions.previewsDeclined ? "Try Again" : "Allow Previews",
+                    enabled: permissions.screenRecordingGranted,
+                    action: permissions.requestPreviewAccess
+                )
+                if permissions.previewsDeclined {
+                    HStack {
+                        Text("Clicked Open System Settings instead? Make sure Window Switcher is on under Screen Recording, then try again.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open Settings", action: permissions.openScreenRecordingSettings)
+                    }
+                }
+            }
+
             HStack {
                 Spacer()
                 Button(permissions.allGranted ? "Done" : "Continue Without") { done() }
@@ -89,6 +114,8 @@ private struct PermissionRow: View {
     let granted: Bool
     let title: LocalizedStringKey
     let detail: LocalizedStringKey
+    var buttonTitle: LocalizedStringKey = "Open Settings"
+    var enabled = true
     let action: () -> Void
 
     var body: some View {
@@ -104,7 +131,8 @@ private struct PermissionRow: View {
             }
             Spacer()
             if !granted {
-                Button("Open Settings", action: action)
+                Button(buttonTitle, action: action)
+                    .disabled(!enabled)
             }
         }
     }

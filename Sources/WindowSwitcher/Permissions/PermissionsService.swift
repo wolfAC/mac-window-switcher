@@ -1,19 +1,57 @@
 import AppKit
 import ApplicationServices
+import ScreenCaptureKit
 
 /// Accessibility (event tap + AX window control) and Screen Recording (previews).
 @MainActor
 final class PermissionsService: ObservableObject {
     @Published private(set) var accessibilityGranted = false
     @Published private(set) var screenRecordingGranted = false
+    /// macOS 15+ separately asks to let the app "bypass the system private window picker"
+    /// the first time it captures windows directly. There's no way to check this without
+    /// triggering the prompt, so a successful capture is remembered here.
+    @Published private(set) var previewsAllowed: Bool
+    @Published private(set) var previewsDeclined = false
 
-    var allGranted: Bool { accessibilityGranted && screenRecordingGranted }
+    var needsPreviewApproval: Bool {
+        if #available(macOS 15, *) { return true }
+        return false
+    }
 
+    var allGranted: Bool {
+        accessibilityGranted && screenRecordingGranted && (previewsAllowed || !needsPreviewApproval)
+    }
+
+    private static let previewsAllowedKey = "previewsAllowed"
     private var timer: Timer?
     private var onChange: [() -> Void] = []
 
     init() {
+        previewsAllowed = UserDefaults.standard.bool(forKey: Self.previewsAllowedKey)
         refresh()
+    }
+
+    /// Asks ScreenCaptureKit for the window list, which shows the macOS 15 "bypass the
+    /// private window picker" prompt if the user hasn't allowed it yet.
+    func requestPreviewAccess() {
+        Task {
+            do {
+                _ = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+                setPreviewsAllowed(true)
+                previewsDeclined = false
+            } catch {
+                Log.app.error("Preview access not allowed: \(error.localizedDescription, privacy: .public)")
+                setPreviewsAllowed(false)
+                previewsDeclined = true
+            }
+        }
+    }
+
+    private func setPreviewsAllowed(_ allowed: Bool) {
+        guard allowed != previewsAllowed else { return }
+        previewsAllowed = allowed
+        UserDefaults.standard.set(allowed, forKey: Self.previewsAllowedKey)
+        onChange.forEach { $0() }
     }
 
     func observe(_ handler: @escaping () -> Void) {

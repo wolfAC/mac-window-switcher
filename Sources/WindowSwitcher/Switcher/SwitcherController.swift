@@ -28,6 +28,14 @@ final class SwitcherController: HotkeyTapDelegate {
         panel.grid.onClick = { [weak self] index in self?.send(.click(index: index)) }
         panel.grid.onCommand = { [weak self] index, command in
             guard let self else { return }
+            if command == .fullScreen {
+                // Switch to it first, then go full screen (both on the same serial AX queue).
+                guard index < self.windows.count else { return }
+                let window = self.windows[index]
+                self.send(.click(index: index))
+                WindowActions.perform(.fullScreen, on: window)
+                return
+            }
             self.send(.select(index: index))
             self.run(command)
         }

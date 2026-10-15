@@ -2,6 +2,8 @@ import AppKit
 
 enum WindowCommand {
     case close, minimize, quit, hide
+    /// Focus the window and put it in full screen (the green button).
+    case fullScreen
 }
 
 /// Focus / close / minimise / hide / quit through AX and NSRunningApplication.
@@ -49,6 +51,8 @@ enum WindowActions {
                 app?.terminate()
             case .hide:
                 app?.hide()
+            case .fullScreen:
+                element.set("AXFullScreen", kCFBooleanTrue)
             }
         }
     }

@@ -59,9 +59,9 @@ An ad-hoc signature changes on every build, so macOS forgets the permissions. Cr
 
 1. Keychain Access → Certificate Assistant → Create a Certificate…
 2. Name: `Window Switcher Dev`, Identity Type: Self Signed Root, Certificate Type: **Code Signing**.
-3. `SIGN_IDENTITY="Window Switcher Dev" ./scripts/run-dev.sh` (or `build-app.sh`).
+3. The build scripts pick up a certificate named `Window Switcher Dev` automatically. Any other name: `SIGN_IDENTITY="My Cert" ./scripts/run-dev.sh`.
 
-Never commit the certificate.
+The certificate doesn't need to be trusted to sign. Never commit it.
 
 ## Releases
 

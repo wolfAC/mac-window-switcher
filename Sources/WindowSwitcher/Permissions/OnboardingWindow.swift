@@ -46,10 +46,18 @@ private struct OnboardingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Window Switcher needs a few permissions")
-                .font(.title2.bold())
-            Text("They stay on your Mac. Nothing is recorded or sent anywhere.")
-                .foregroundStyle(.secondary)
+            if permissions.allGranted {
+                Label("All set. Window Switcher is running.", systemImage: "checkmark.seal.fill")
+                    .font(.title2.bold())
+                    .foregroundStyle(.green)
+                Text("It lives in the menu bar (\(Image(systemName: "rectangle.on.rectangle"))), with no Dock icon. Hold ⌘ and press Tab to try it.")
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Window Switcher needs a few permissions")
+                    .font(.title2.bold())
+                Text("They stay on your Mac. Nothing is recorded or sent anywhere.")
+                    .foregroundStyle(.secondary)
+            }
 
             PermissionRow(
                 granted: permissions.accessibilityGranted,

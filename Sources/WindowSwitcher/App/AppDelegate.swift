@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         syncWithPermissions()
 
         let relaunchedFromOnboarding = PermissionsService.consumeRelaunchFlag()
+        Log.app.notice("Launched (after onboarding relaunch: \(relaunchedFromOnboarding)), accessibility=\(self.permissions.accessibilityGranted) screenRecording=\(self.permissions.screenRecordingGranted) previews=\(self.permissions.previewsAllowed)")
         if relaunchedFromOnboarding || (!permissions.allGranted && !preferences.hasCompletedOnboarding) || !permissions.accessibilityGranted {
             onboarding.show()
         }

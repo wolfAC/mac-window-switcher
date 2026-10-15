@@ -50,6 +50,7 @@ final class PermissionsService: ObservableObject {
     private func setPreviewsAllowed(_ allowed: Bool) {
         guard allowed != previewsAllowed else { return }
         previewsAllowed = allowed
+        Log.app.notice("Previews allowed: \(allowed)")
         UserDefaults.standard.set(allowed, forKey: Self.previewsAllowedKey)
         onChange.forEach { $0() }
     }
@@ -72,7 +73,7 @@ final class PermissionsService: ObservableObject {
         guard ax != accessibilityGranted || screen != screenRecordingGranted else { return }
         accessibilityGranted = ax
         screenRecordingGranted = screen
-        Log.app.info("Permissions: accessibility=\(ax) screenRecording=\(screen)")
+        Log.app.notice("Permissions: accessibility=\(ax) screenRecording=\(screen)")
         onChange.forEach { $0() }
     }
 
@@ -115,6 +116,7 @@ final class PermissionsService: ObservableObject {
     /// Screen Recording access is only re-read at launch, so offer a relaunch after granting it.
     func relaunch() {
         UserDefaults.standard.set(true, forKey: Self.reopenOnboardingKey)
+        Log.app.notice("Relaunching")
         let path = Bundle.main.bundlePath
         let pid = ProcessInfo.processInfo.processIdentifier
         let task = Process()

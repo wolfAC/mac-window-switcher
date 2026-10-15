@@ -78,7 +78,7 @@ private final class WindowCellView: NSView {
     private let screenLabel = NSTextField(labelWithString: "")
     private let trafficLights = TrafficLightGroup()
     private let quitButton = TrafficLightButton(kind: .quit, help: String(localized: "Quit app (Q)"))
-    private let actions = NSStackView()
+    private let hideButton = TrafficLightButton(kind: .hide, help: String(localized: "Hide app (H)"))
     private var appIcon: NSImage?
     private var label = ""
 
@@ -133,22 +133,17 @@ private final class WindowCellView: NSView {
         trafficLights.isHidden = true
         addSubview(trafficLights)
 
-        // Quit: a purple power button, top-right, centred on the traffic lights' row.
-        let quitSide = TrafficLightButton.quitDiameter
+        // Hide (blue) and Quit (purple power): no macOS window control for these, so they
+        // sit top-right in the same style, centred on the traffic lights' row.
+        let side = TrafficLightButton.symbolDiameter
         let rowMidY = thumbFrame.minY + 6 + TrafficLightGroup.diameter / 2
-        quitButton.frame = CGRect(x: thumbFrame.maxX - quitSide - 6, y: rowMidY - quitSide / 2, width: quitSide, height: quitSide)
-        quitButton.onPress = { [weak self] kind in self?.onCommand?(kind.command) }
-        quitButton.isHidden = true
-        addSubview(quitButton)
-
-        // Hide has no macOS equivalent button, so it stays a small button left of Quit.
-        actions.orientation = .horizontal
-        let hide = ActionButton(symbol: "eye.slash", help: String(localized: "Hide app (H)")) { [weak self] in self?.onCommand?(.hide) }
-        actions.addArrangedSubview(hide)
-        let actionsSize = actions.fittingSize
-        actions.frame = CGRect(x: quitButton.frame.minX - actionsSize.width - 4, y: rowMidY - actionsSize.height / 2, width: actionsSize.width, height: actionsSize.height)
-        actions.isHidden = true
-        addSubview(actions)
+        quitButton.frame = CGRect(x: thumbFrame.maxX - side - 6, y: rowMidY - side / 2, width: side, height: side)
+        hideButton.frame = quitButton.frame.offsetBy(dx: -(side + 6), dy: 0)
+        for button in [hideButton, quitButton] {
+            button.onPress = { [weak self] kind in self?.onCommand?(kind.command) }
+            button.isHidden = true
+            addSubview(button)
+        }
 
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -161,7 +156,7 @@ private final class WindowCellView: NSView {
     // Let the grid handle clicks and hover anywhere except the action buttons.
     override func hitTest(_ point: NSPoint) -> NSView? {
         let hit = super.hitTest(point)
-        return hit.flatMap { $0 is ActionButton || $0.superview is ActionButton || $0 is TrafficLightButton ? $0 : nil }
+        return hit.flatMap { $0 is TrafficLightButton ? $0 : nil }
     }
 
     func configure(_ window: WindowInfo, screenNumber: Int?) {
@@ -197,35 +192,11 @@ private final class WindowCellView: NSView {
     private func updateSelection() {
         layer?.backgroundColor = isSelected ? NSColor.selectedContentBackgroundColor.withAlphaComponent(0.3).cgColor : nil
         layer?.borderColor = isSelected ? NSColor.selectedContentBackgroundColor.cgColor : NSColor.clear.cgColor
-        actions.isHidden = !isSelected
+        hideButton.isHidden = !isSelected
         trafficLights.isHidden = !isSelected
         quitButton.isHidden = !isSelected
         setAccessibilitySelected(isSelected)
     }
-}
-
-@MainActor
-private final class ActionButton: NSButton {
-    private let handler: () -> Void
-
-    init(symbol: String, help: String, handler: @escaping () -> Void) {
-        self.handler = handler
-        super.init(frame: CGRect(x: 0, y: 0, width: 22, height: 22))
-        image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)
-        bezelStyle = .circular
-        isBordered = true
-        toolTip = help
-        target = self
-        action = #selector(fire)
-        widthAnchor.constraint(equalToConstant: 22).isActive = true
-        heightAnchor.constraint(equalToConstant: 22).isActive = true
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    @objc private func fire() { handler() }
 }
 
 /// Red / yellow / green buttons drawn like macOS's window controls. Real
@@ -279,13 +250,14 @@ private final class TrafficLightGroup: NSView {
 @MainActor
 private final class TrafficLightButton: NSView {
     enum Kind {
-        case close, minimize, fullScreen, quit
+        case close, minimize, fullScreen, hide, quit
 
         var command: WindowCommand {
             switch self {
             case .close: .close
             case .minimize: .minimize
             case .fullScreen: .fullScreen
+            case .hide: .hide
             case .quit: .quit
             }
         }
@@ -296,7 +268,17 @@ private final class TrafficLightButton: NSView {
             case .close: NSColor(srgbRed: 1.0, green: 0.373, blue: 0.341, alpha: 1)
             case .minimize: NSColor(srgbRed: 0.996, green: 0.737, blue: 0.180, alpha: 1)
             case .fullScreen: NSColor(srgbRed: 0.157, green: 0.784, blue: 0.251, alpha: 1)
+            case .hide: NSColor(srgbRed: 0.0, green: 0.533, blue: 1.0, alpha: 1) // systemBlue
             case .quit: NSColor(srgbRed: 0.686, green: 0.322, blue: 0.871, alpha: 1) // systemPurple
+            }
+        }
+
+        /// Hide and Quit always show an SF Symbol; the traffic lights draw their glyphs on hover.
+        var symbolName: String? {
+            switch self {
+            case .hide: "eye.slash"
+            case .quit: "power"
+            default: nil
             }
         }
 
@@ -305,13 +287,14 @@ private final class TrafficLightButton: NSView {
             case .close: NSColor(srgbRed: 0.878, green: 0.267, blue: 0.243, alpha: 1)
             case .minimize: NSColor(srgbRed: 0.871, green: 0.631, blue: 0.137, alpha: 1)
             case .fullScreen: NSColor(srgbRed: 0.102, green: 0.671, blue: 0.161, alpha: 1)
+            case .hide: NSColor(srgbRed: 0.0, green: 0.420, blue: 0.851, alpha: 1)
             case .quit: NSColor(srgbRed: 0.553, green: 0.231, blue: 0.722, alpha: 1)
             }
         }
     }
 
-    /// The quit button carries its power glyph all the time, so it's a little bigger.
-    static let quitDiameter: CGFloat = 16
+    /// Hide and Quit carry their symbol all the time, so they're a little bigger.
+    static let symbolDiameter: CGFloat = 16
 
     let kind: Kind
     var onPress: ((Kind) -> Void)?
@@ -352,8 +335,8 @@ private final class TrafficLightButton: NSView {
         circle.lineWidth = 0.5
         circle.stroke()
 
-        if kind == .quit {
-            drawPowerSymbol()
+        if let symbolName = kind.symbolName {
+            drawSymbol(symbolName)
             return
         }
         guard showsGlyph else { return }
@@ -378,15 +361,15 @@ private final class TrafficLightButton: NSView {
             a.move(to: CGPoint(x: c.x - r, y: c.y - r)); a.line(to: CGPoint(x: c.x + leg, y: c.y - r)); a.line(to: CGPoint(x: c.x - r, y: c.y + leg)); a.close()
             a.move(to: CGPoint(x: c.x + r, y: c.y + r)); a.line(to: CGPoint(x: c.x - leg, y: c.y + r)); a.line(to: CGPoint(x: c.x + r, y: c.y - leg)); a.close()
             a.fill()
-        case .quit:
-            break // drawn by drawPowerSymbol()
+        case .hide, .quit:
+            break // drawn by drawSymbol(_:)
         }
     }
 
-    private func drawPowerSymbol() {
+    private func drawSymbol(_ name: String) {
         let config = NSImage.SymbolConfiguration(pointSize: bounds.height * 0.42, weight: .bold)
-            .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
-        guard let symbol = NSImage(systemSymbolName: "power", accessibilityDescription: nil)?.withSymbolConfiguration(config) else { return }
+            .applying(NSImage.SymbolConfiguration(paletteColors: [.black]))
+        guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(config) else { return }
         let size = symbol.size
         symbol.draw(in: CGRect(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2, width: size.width, height: size.height))
     }

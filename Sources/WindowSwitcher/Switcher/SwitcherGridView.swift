@@ -199,8 +199,9 @@ private final class WindowCellView: NSView {
     }
 }
 
-/// Red / yellow / green buttons drawn like macOS's window controls. Real
-/// `standardWindowButton`s render grey here because the panel is never the key window.
+/// Red / yellow / green buttons drawn like macOS's window controls, with their ×, − and
+/// full-screen glyphs always visible. Real `standardWindowButton`s render grey here
+/// because the panel is never the key window.
 @MainActor
 private final class TrafficLightGroup: NSView {
     var onCommand: ((WindowCommand) -> Void)?
@@ -227,24 +228,6 @@ private final class TrafficLightGroup: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     override var isFlipped: Bool { true }
-
-    // Like macOS, all three glyphs appear when the pointer is over any of the buttons.
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
-    }
-
-    override func mouseEntered(with event: NSEvent) { setGlyphs(true) }
-    override func mouseExited(with event: NSEvent) { setGlyphs(false) }
-
-    override var isHidden: Bool {
-        didSet { if isHidden { setGlyphs(false) } }
-    }
-
-    private func setGlyphs(_ visible: Bool) {
-        buttons.forEach { $0.showsGlyph = visible }
-    }
 }
 
 @MainActor
@@ -298,7 +281,6 @@ private final class TrafficLightButton: NSView {
 
     let kind: Kind
     var onPress: ((Kind) -> Void)?
-    var showsGlyph = false { didSet { needsDisplay = true } }
     private var isPressed = false { didSet { needsDisplay = true } }
 
     init(kind: Kind, help: String) {
@@ -339,7 +321,6 @@ private final class TrafficLightButton: NSView {
             drawSymbol(symbolName)
             return
         }
-        guard showsGlyph else { return }
         NSColor.black.withAlphaComponent(0.55).set()
         let c = CGPoint(x: bounds.midX, y: bounds.midY)
         let glyph = NSBezierPath()

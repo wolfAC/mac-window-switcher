@@ -1,5 +1,7 @@
 #!/bin/sh
 # Makes Resources/AppIcon.icns from one 1024×1024 PNG: scripts/make-icon.sh icon.png
+# The app's own icon comes from scripts/draw-icon.swift:
+#   swift scripts/draw-icon.swift build/AppIcon.png && scripts/make-icon.sh build/AppIcon.png
 set -e
 cd "$(dirname "$0")/.."
 SRC="${1:?usage: scripts/make-icon.sh path/to/icon-1024.png}"

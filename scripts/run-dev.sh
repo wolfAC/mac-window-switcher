@@ -18,6 +18,10 @@ APP="build/Window Switcher.app"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/WindowSwitcher"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+if [ -f Resources/AppIcon.icns ]; then
+    mkdir -p "$APP/Contents/Resources"
+    cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+fi
 codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
 
 pkill -x WindowSwitcher 2>/dev/null || true

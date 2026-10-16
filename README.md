@@ -1,5 +1,7 @@
 # Window Switcher
 
+[Download](https://github.com/wolfAC/mac-window-switcher/releases/latest) · macOS 14+ · Intel and Apple Silicon
+
 A free, open-source Cmd+Tab replacement for macOS that shows every window, not just app icons.
 
 - Hold **⌘** and press **Tab** to see every window with a live preview, most recently used first.
@@ -65,13 +67,15 @@ The certificate doesn't need to be trusted to sign. Never commit it.
 
 ## Releases
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`: tests, a universal build, and a GitHub Release with a zip and a DMG. To sign releases with your certificate, export it as a `.p12` and add these repository secrets:
+Download the latest DMG from [Releases](https://github.com/wolfAC/mac-window-switcher/releases).
 
-- `SIGNING_CERT_P12`: `base64 -i cert.p12 | pbcopy`
-- `SIGNING_CERT_PASSWORD`
-- `SIGNING_IDENTITY`: e.g. `Window Switcher Dev`
+Releases are built and signed on the maintainer's Mac, so the signing key never goes to GitHub:
 
-`packaging/mac-window-switcher.rb` is a Homebrew cask template for your own tap.
+    scripts/release.sh 0.2.0
+
+It sets the version in `Info.plist`, commits and tags `v0.2.0`, builds the universal app, makes the zip and DMG, pushes, and uploads them with `gh release create`. It refuses to run without the `Window Switcher Dev` certificate, because every release must be signed with the same one or users lose their permissions. Back the certificate up (Keychain Access → export as `.p12`) and keep it safe.
+
+GitHub Actions runs the tests and a build on every push (`.github/workflows/ci.yml`). `packaging/mac-window-switcher.rb` is a Homebrew cask template for your own tap; `release.sh` prints the version and sha256 to put in it.
 
 ## License
 

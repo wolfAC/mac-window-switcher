@@ -1,14 +1,14 @@
-# Homebrew cask for your own tap (e.g. github.com/<you>/homebrew-tap, file Casks/window-switcher.rb).
+# Homebrew cask for your own tap (e.g. github.com/<you>/homebrew-tap, file Casks/mac-window-switcher.rb).
 # Fill in the GitHub owner, then update version + sha256 for each release:
 #   shasum -a 256 build/WindowSwitcher.zip
-cask "window-switcher" do
+cask "mac-window-switcher" do
   version "1.0.0"
   sha256 "REPLACE_WITH_SHA256"
 
-  url "https://github.com/OWNER/window-switcher/releases/download/v#{version}/WindowSwitcher.zip"
+  url "https://github.com/OWNER/mac-window-switcher/releases/download/v#{version}/WindowSwitcher.zip"
   name "Window Switcher"
   desc "Cmd+Tab replacement that shows every window"
-  homepage "https://github.com/OWNER/window-switcher"
+  homepage "https://github.com/OWNER/mac-window-switcher"
 
   depends_on macos: ">= :sonoma"
 

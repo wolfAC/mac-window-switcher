@@ -4,7 +4,7 @@
 macOS's Cmd+Tab shows one icon per app. You want a switcher that shows **every window** with a live preview, like AltTab. The app should be free, open source, and distributed without a paid Apple Developer account.
 
 **Current state (2026-10-10):**
-- The project is at `~/Workspace/Personal/window-switcher`.
+- The project is at `~/Workspace/Personal/Projects/mac-window-switcher`.
 - It's a Swift Package that builds a universal (Intel + Apple Silicon) `.app` with `scripts/build-app.sh`, using only the Xcode Command Line Tools.
 - It runs as a menu bar app with no Dock icon. The menu has a Quit item and nothing else yet.
 - The dev Mac runs macOS 15.8.1 (Intel) with Swift 6.1.2. Its toolchain includes **Swift Testing** but not XCTest, so tests use `import Testing`.
@@ -148,7 +148,7 @@ Each phase ends with something you can run. The checkboxes are the acceptance cr
 - [ ] `scripts/make-dmg.sh`: `hdiutil create` a DMG containing the app and an Applications shortcut.
 - [ ] GitHub repo (public). A GitHub Actions workflow on a `macos` runner builds, tests, and attaches the zip and DMG to a Release when a `v*` tag is pushed. Actions are free for public repos.
 - [ ] README: screenshots, the install steps for "Open Anyway" / `xattr`, the permissions guide, and how to build from source.
-- [ ] **Homebrew:** publish through your own tap (`brew install --cask wolf/tap/window-switcher`). The main `homebrew/cask` repo is phasing out apps that aren't notarized, so don't rely on it.
+- [ ] **Homebrew:** publish through your own tap (`brew install --cask wolf/tap/mac-window-switcher`). The main `homebrew/cask` repo is phasing out apps that aren't notarized, so don't rely on it.
 - [ ] **Signing secret in CI:** the self-signed certificate's `.p12` goes in a GitHub Actions secret and is imported into a temporary keychain during the build.
 
 ### Phase 8: Auto-update

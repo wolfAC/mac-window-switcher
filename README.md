@@ -71,7 +71,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`: tests, a universal buil
 - `SIGNING_CERT_PASSWORD`
 - `SIGNING_IDENTITY`: e.g. `Window Switcher Dev`
 
-`packaging/window-switcher.rb` is a Homebrew cask template for your own tap.
+`packaging/mac-window-switcher.rb` is a Homebrew cask template for your own tap.
 
 ## License
 

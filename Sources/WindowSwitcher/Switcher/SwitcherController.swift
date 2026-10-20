@@ -24,6 +24,10 @@ final class SwitcherController: HotkeyTapDelegate {
         self.thumbnails = thumbnails
         self.preferences = preferences
 
+        catalog.onOffSpaceChange = { [weak self] in
+            guard let self, self.state.isActive else { return }
+            self.loadWindows(session: self.session)
+        }
         panel.grid.onHover = { [weak self] index in self?.send(.select(index: index)) }
         panel.grid.onClick = { [weak self] index in self?.send(.click(index: index)) }
         panel.grid.onCommand = { [weak self] index, command in
@@ -137,8 +141,13 @@ final class SwitcherController: HotkeyTapDelegate {
             guard session == self.session else { return }
             recents.prune(alive: snapshot.all)
             thumbnails.prune(keeping: Set(snapshot.all.compactMap(\.windowID)))
+            let selected = state.selection.flatMap { $0 < windows.count ? windows[$0].axElement : nil }
             windows = recents.ordered(snapshot.visible)
             send(.loaded(count: windows.count))
+            // A reload can insert windows; stay on the one that was selected if it's still there.
+            if let selected, let index = windows.firstIndex(where: { $0.axElement == selected }) {
+                send(.select(index: index))
+            }
         }
     }
 

@@ -55,6 +55,12 @@ extension AXUIElement {
         return CGRect(origin: position, size: size)
     }
 
+    /// False once the element is destroyed (e.g. its window closed). A busy app that times out still counts as alive.
+    var isAlive: Bool {
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(self, kAXRoleAttribute as CFString, &value) != .invalidUIElement
+    }
+
     var pid: pid_t? {
         var pid: pid_t = 0
         return AXUIElementGetPid(self, &pid) == .success ? pid : nil

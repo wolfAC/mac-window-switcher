@@ -32,6 +32,10 @@ The app isn't notarized by Apple, so macOS blocks it the first time. Either:
 - Open it, then go to System Settings → Privacy & Security → **Open Anyway**, or
 - Run `xattr -dr com.apple.quarantine "/Applications/Window Switcher.app"`
 
+## Updates
+
+Once a day the app checks GitHub Releases for a newer version and offers to install it. It only installs a download signed with the same certificate as the copy you're running, so your permissions carry over. Use **Check for Updates…** in the menu bar to check now, or turn off **Check for updates automatically** in Settings.
+
 ## Permissions
 
 On first launch a window walks you through both:
@@ -39,7 +43,7 @@ On first launch a window walks you through both:
 - **Accessibility**: to catch ⌘Tab before macOS does, and to focus, close and minimise windows.
 - **Screen Recording**: for window previews. Without it you'll see app icons instead. macOS applies it after a relaunch, and macOS 15 and later may ask you to re-confirm it from time to time.
 
-Nothing is recorded or sent anywhere. If Accessibility is revoked or you choose **Pause** in the menu, the native ⌘Tab works again.
+Nothing is recorded or sent anywhere. The only network request is the update check to GitHub. If Accessibility is revoked or you choose **Pause** in the menu, the native ⌘Tab works again.
 
 ## Build from source
 

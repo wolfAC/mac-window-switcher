@@ -10,6 +10,8 @@ cask "mac-window-switcher" do
   desc "Cmd+Tab replacement that shows every window"
   homepage "https://github.com/wolfAC/mac-window-switcher"
 
+  # The app updates itself from GitHub Releases, so `brew upgrade` leaves it alone.
+  auto_updates true
   depends_on macos: ">= :sonoma"
 
   app "Window Switcher.app"

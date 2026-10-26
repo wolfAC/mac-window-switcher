@@ -11,11 +11,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     private lazy var tap = HotkeyTap { [preferences] in preferences.bindings }
     private lazy var onboarding = OnboardingWindow(permissions: permissions, preferences: preferences)
     private lazy var settings = SettingsWindow(preferences: preferences)
+    private lazy var updater = Updater(preferences: preferences)
     private var statusMenu: StatusMenu?
 
     private(set) var isPaused = false
 
     var permissionsMissing: Bool { !permissions.allGranted }
+    var isUpdating: Bool { updater.isBusy }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         tap.delegate = controller
@@ -24,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         permissions.observe { [weak self] in self?.syncWithPermissions() }
         permissions.startPolling(interval: 2)
         syncWithPermissions()
+        updater.start()
 
         let relaunchedFromOnboarding = PermissionsService.consumeRelaunchFlag()
         Log.app.notice("Launched (after onboarding relaunch: \(relaunchedFromOnboarding)), accessibility=\(self.permissions.accessibilityGranted) screenRecording=\(self.permissions.screenRecordingGranted) previews=\(self.permissions.previewsAllowed)")
@@ -63,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     func showPermissions() { onboarding.show() }
     func showSettings() { settings.show() }
     func dumpWindows() { controller.dumpWindows() }
+    func checkForUpdates() { updater.check(userInitiated: true) }
 
     func togglePause() {
         isPaused.toggle()

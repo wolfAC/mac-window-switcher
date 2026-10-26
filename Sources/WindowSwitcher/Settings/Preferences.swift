@@ -51,6 +51,17 @@ final class Preferences: ObservableObject {
     @Published var holdDelayMs: Int { didSet { save(holdDelayMs, "holdDelayMs") } }
     @Published var overlayScreen: OverlayScreen { didSet { save(overlayScreen.rawValue, "overlayScreen") } }
     @Published var hasCompletedOnboarding: Bool { didSet { save(hasCompletedOnboarding, "hasCompletedOnboarding") } }
+    @Published var checkForUpdates: Bool { didSet { save(checkForUpdates, "checkForUpdates") } }
+
+    var lastUpdateCheck: Date? {
+        get { defaults.object(forKey: "lastUpdateCheck") as? Date }
+        set { defaults.set(newValue, forKey: "lastUpdateCheck") }
+    }
+    /// A release the user chose to skip; automatic checks don't offer it again.
+    var skippedVersion: String? {
+        get { defaults.string(forKey: "skippedVersion") }
+        set { defaults.set(newValue, forKey: "skippedVersion") }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -71,6 +82,7 @@ final class Preferences: ObservableObject {
         holdDelayMs = defaults.object(forKey: "holdDelayMs") == nil ? 120 : defaults.integer(forKey: "holdDelayMs")
         overlayScreen = value("overlayScreen", OverlayScreen.activeWindow)
         hasCompletedOnboarding = bool("hasCompletedOnboarding", false)
+        checkForUpdates = bool("checkForUpdates", true)
     }
 
     private func save(_ value: Any, _ key: String) {

@@ -90,6 +90,7 @@ struct SettingsView: View {
                     get: { preferences.launchAtLogin },
                     set: { preferences.launchAtLogin = $0 }
                 ))
+                Toggle("Check for updates automatically", isOn: $preferences.checkForUpdates)
             }
         }
         .formStyle(.grouped)

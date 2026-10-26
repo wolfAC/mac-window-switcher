@@ -4,13 +4,15 @@ import AppKit
 protocol StatusMenuDelegate: AnyObject {
     var isPaused: Bool { get }
     var permissionsMissing: Bool { get }
+    var isUpdating: Bool { get }
     func showPermissions()
     func showSettings()
     func togglePause()
     func dumpWindows()
+    func checkForUpdates()
 }
 
-/// Menu bar item: Settings…, Pause, About, Quit, plus a warning when permissions are missing.
+/// Menu bar item: Settings…, Pause, Check for Updates…, About, Quit, plus a warning when permissions are missing.
 @MainActor
 final class StatusMenu: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -53,6 +55,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         debug.submenu?.addItem(entry(String(localized: "Dump Windows to Log"), #selector(dumpWindows)))
         menu.addItem(debug)
 
+        if delegate.isUpdating {
+            let checking = NSMenuItem(title: String(localized: "Checking for Updates…"), action: nil, keyEquivalent: "")
+            checking.isEnabled = false
+            menu.addItem(checking)
+        } else {
+            menu.addItem(entry(String(localized: "Check for Updates…"), #selector(checkForUpdates)))
+        }
         menu.addItem(entry(String(localized: "About Window Switcher"), #selector(about)))
         menu.addItem(.separator())
         let quit = NSMenuItem(title: String(localized: "Quit Window Switcher"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -69,6 +78,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     @objc private func showSettings() { delegate?.showSettings() }
     @objc private func togglePause() { delegate?.togglePause() }
     @objc private func dumpWindows() { delegate?.dumpWindows() }
+    @objc private func checkForUpdates() { delegate?.checkForUpdates() }
 
     @objc private func about() {
         NSApp.activate()

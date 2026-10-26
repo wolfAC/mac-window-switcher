@@ -6,7 +6,12 @@ import ScreenCaptureKit
 @MainActor
 final class ThumbnailService {
     private var cache: [CGWindowID: CGImage] = [:]
-    private var task: Task<Void, Never>?
+    /// Windows with a capture under way. A new refresh skips them instead of starting over,
+    /// so a reload mid-session never throws away captures that are nearly done.
+    private var inFlight: Set<CGWindowID> = []
+    /// Where finished captures go; `nil` once the session ends. Captures still finish then
+    /// and fill the cache, so the next session opens with previews instead of icons.
+    private var onImage: ((CGWindowID, CGImage) -> Void)?
     private var generation = 0
 
     var hasPermission: Bool { CGPreflightScreenCaptureAccess() }
@@ -20,9 +25,9 @@ final class ThumbnailService {
         cache = cache.filter { ids.contains($0.key) }
     }
 
+    /// Stops delivering previews to the current session.
     func cancel() {
-        task?.cancel()
-        task = nil
+        onImage = nil
         generation += 1
     }
 
@@ -33,19 +38,23 @@ final class ThumbnailService {
         onImage: @escaping (CGWindowID, CGImage) -> Void,
         onFinished: @escaping (Int) -> Void
     ) {
-        cancel()
+        generation += 1
+        self.onImage = onImage
         guard hasPermission else { return }
-        let targets = windows.filter(\.canCapture)
+        let targets = windows.filter { $0.canCapture && $0.windowID.map { !inFlight.contains($0) } ?? false }
         guard !targets.isEmpty else { return }
         let sizes = targets.map(pointSize)
+        let ids = targets.compactMap(\.windowID)
+        inFlight.formUnion(ids)
         let current = generation
 
-        task = Task { [weak self] in
+        Task { [weak self] in
             let content: SCShareableContent
             do {
                 content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
             } catch {
                 Log.thumbnails.error("SCShareableContent failed: \(error.localizedDescription, privacy: .public)")
+                self?.inFlight.subtract(ids)
                 return
             }
             let byID = Dictionary(content.windows.map { ($0.windowID, $0) }, uniquingKeysWith: { a, _ in a })
@@ -53,20 +62,25 @@ final class ThumbnailService {
             var delivered = 0
             await withTaskGroup(of: (CGWindowID, CGImage?).self) { group in
                 for (window, size) in zip(targets, sizes) {
-                    guard let id = window.windowID, let scWindow = byID[id] else { continue }
+                    guard let id = window.windowID else { continue }
+                    guard let scWindow = byID[id] else {
+                        self?.inFlight.remove(id)
+                        continue
+                    }
                     group.addTask {
                         (id, await Self.capture(scWindow, size: size))
                     }
                 }
                 for await (id, image) in group {
-                    guard let image, !Task.isCancelled else { continue }
-                    guard let self, self.generation == current else { return }
+                    guard let self else { continue }
+                    self.inFlight.remove(id)
+                    guard let image else { continue }
                     self.cache[id] = image
                     delivered += 1
-                    onImage(id, image)
+                    self.onImage?(id, image)
                 }
             }
-            guard let self, self.generation == current, !Task.isCancelled else { return }
+            guard let self, self.generation == current else { return }
             onFinished(delivered)
         }
     }

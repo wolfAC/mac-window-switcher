@@ -143,6 +143,9 @@ final class SwitcherController: HotkeyTapDelegate {
             thumbnails.prune(keeping: Set(snapshot.all.compactMap(\.windowID)))
             let selected = state.selection.flatMap { $0 < windows.count ? windows[$0].axElement : nil }
             windows = recents.ordered(snapshot.visible)
+            // Start captures now, not when the overlay appears: the hold delay gives them a
+            // head start, and even a quick tap that never shows the overlay warms the cache.
+            refreshThumbnails()
             send(.loaded(count: windows.count))
             // A reload can insert windows; stay on the one that was selected if it's still there.
             if let selected, let index = windows.firstIndex(where: { $0.axElement == selected }) {
@@ -165,16 +168,18 @@ final class SwitcherController: HotkeyTapDelegate {
         if let triggeredAt {
             Log.perf.info("Overlay first frame \(Int(Date().timeIntervalSince(triggeredAt) * 1000)) ms after trigger (\(self.windows.count) windows)")
         }
+    }
 
-        let shown = windows
+    private func refreshThumbnails() {
+        let metrics = metrics
         let start = Date()
         thumbnails.refresh(
-            shown,
+            windows,
             pointSize: { window in
                 CGSize(width: metrics.thumbnailHeight * min(max(window.aspectRatio, metrics.minAspect), metrics.maxAspect), height: metrics.thumbnailHeight)
             },
             onImage: { [weak self] id, image in
-                guard let self else { return }
+                guard let self, self.state.isVisible else { return }
                 let indices = self.windows.indices.filter { self.windows[$0].windowID == id }
                 self.panel.grid.setThumbnail(image, forWindowAt: indices)
             },

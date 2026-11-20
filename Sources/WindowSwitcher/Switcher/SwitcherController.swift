@@ -186,8 +186,10 @@ final class SwitcherController: HotkeyTapDelegate {
             windows: windows, metrics: metrics, showTitles: preferences.showTitles, on: screen,
             appearance: preferences.appearance.nsAppearance, thumbnail: { [thumbnails] in thumbnails.cached($0.windowID) }
         )
+        // Only the session's first show: later ones are re-renders (a reload while open).
         if let triggeredAt {
             Log.perf.info("Overlay first frame \(Int(Date().timeIntervalSince(triggeredAt) * 1000)) ms after trigger (\(self.windows.count) windows)")
+            self.triggeredAt = nil
         }
     }
 

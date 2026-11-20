@@ -45,6 +45,8 @@ On first launch a window walks you through both:
 
 Nothing is recorded or sent anywhere. The only network request is the update check to GitHub. If Accessibility is revoked or you choose **Pause** in the menu, the native ⌘Tab works again.
 
+If the native ⌘Tab shows up even though Window Switcher is running, another app probably has **Secure Input** on. A focused password field turns it on, and browsers sometimes leave it stuck on. While it's on, macOS hides keystrokes from every app, so ⌘Tab can't be caught. The menu bar icon changes to a lock and the menu names the app that has it on. To turn it off, close that app's password field or quit and reopen the app.
+
 ## Build from source
 
 Requires macOS 14+ and Swift 6 (the Xcode Command Line Tools are enough).

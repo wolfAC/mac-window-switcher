@@ -12,12 +12,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     private lazy var onboarding = OnboardingWindow(permissions: permissions, preferences: preferences)
     private lazy var settings = SettingsWindow(preferences: preferences)
     private lazy var updater = Updater(preferences: preferences)
+    private let secureInput = SecureInputMonitor()
     private var statusMenu: StatusMenu?
 
     private(set) var isPaused = false
 
     var permissionsMissing: Bool { !permissions.allGranted }
     var isUpdating: Bool { updater.isBusy }
+    /// The app blocking the trigger with Secure Input, if any.
+    var secureInputHolder: String? { secureInput.isActive ? secureInput.holderName : nil }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         tap.delegate = controller
@@ -27,6 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         permissions.startPolling(interval: 2)
         syncWithPermissions()
         updater.start()
+        secureInput.onChange = { [weak self] in self?.statusMenu?.refreshIcon() }
+        secureInput.start(interval: 2)
 
         let relaunchedFromOnboarding = PermissionsService.consumeRelaunchFlag()
         Log.app.notice("Launched (after onboarding relaunch: \(relaunchedFromOnboarding)), accessibility=\(self.permissions.accessibilityGranted) screenRecording=\(self.permissions.screenRecordingGranted) previews=\(self.permissions.previewsAllowed)")
@@ -67,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     func showSettings() { settings.show() }
     func dumpWindows() { controller.dumpWindows() }
     func checkForUpdates() { updater.check(userInitiated: true) }
+    func showSecureInputHolder() { secureInput.holder?.activate() }
 
     func togglePause() {
         isPaused.toggle()

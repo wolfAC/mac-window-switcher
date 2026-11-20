@@ -5,11 +5,13 @@ protocol StatusMenuDelegate: AnyObject {
     var isPaused: Bool { get }
     var permissionsMissing: Bool { get }
     var isUpdating: Bool { get }
+    var secureInputHolder: String? { get }
     func showPermissions()
     func showSettings()
     func togglePause()
     func dumpWindows()
     func checkForUpdates()
+    func showSecureInputHolder()
 }
 
 /// Menu bar item: Settings…, Pause, Check for Updates…, About, Quit, plus a warning when permissions are missing.
@@ -30,8 +32,14 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     func refreshIcon() {
         let missing = delegate?.permissionsMissing ?? false
         let paused = delegate?.isPaused ?? false
-        let symbol = missing ? "exclamationmark.triangle" : paused ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle"
-        let description = missing ? String(localized: "Window Switcher: permissions needed") : String(localized: "Window Switcher")
+        let blockedBy = delegate?.secureInputHolder
+        let symbol = missing ? "exclamationmark.triangle"
+            : paused ? "rectangle.on.rectangle.slash"
+            : blockedBy != nil ? "lock.rectangle.on.rectangle"
+            : "rectangle.on.rectangle"
+        let description = missing ? String(localized: "Window Switcher: permissions needed")
+            : blockedBy.map { String(localized: "Window Switcher: Secure Input is on in \($0), so macOS's own switcher is used") }
+            ?? String(localized: "Window Switcher")
         item.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)
         item.button?.toolTip = description
     }
@@ -42,6 +50,16 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
         if delegate.permissionsMissing {
             menu.addItem(entry(String(localized: "Permissions Needed…"), #selector(showPermissions)))
+            menu.addItem(.separator())
+        }
+        if let holder = delegate.secureInputHolder {
+            let info = NSMenuItem(title: String(localized: "Secure Input is on in \(holder)"), action: nil, keyEquivalent: "")
+            info.isEnabled = false
+            menu.addItem(info)
+            let hint = NSMenuItem(title: String(localized: "⌘Tab falls back to macOS until it's off"), action: nil, keyEquivalent: "")
+            hint.isEnabled = false
+            menu.addItem(hint)
+            menu.addItem(entry(String(localized: "Show \(holder)"), #selector(showSecureInputHolder)))
             menu.addItem(.separator())
         }
         menu.addItem(entry(String(localized: "Settings…"), #selector(showSettings), key: ","))
@@ -79,6 +97,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     @objc private func togglePause() { delegate?.togglePause() }
     @objc private func dumpWindows() { delegate?.dumpWindows() }
     @objc private func checkForUpdates() { delegate?.checkForUpdates() }
+    @objc private func showSecureInputHolder() { delegate?.showSecureInputHolder() }
 
     @objc private func about() {
         NSApp.activate()

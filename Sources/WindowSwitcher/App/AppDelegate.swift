@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     var secureInputHolder: String? { secureInput.isActive ? secureInput.holderName : nil }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AXTimeout.applyGlobally()
         tap.delegate = controller
         statusMenu = StatusMenu(delegate: self)
 

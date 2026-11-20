@@ -141,6 +141,11 @@ private func tapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEve
     let tap = Unmanaged<HotkeyTap>.fromOpaque(refcon).takeUnretainedValue()
     // The tap's run loop source is on the main run loop.
     return MainActor.assumeIsolated {
-        tap.handle(type: type, event: event)
+        let start = DispatchTime.now().uptimeNanoseconds
+        let result = tap.handle(type: type, event: event)
+        // Every keystroke on the Mac waits for this callback; anything slow here is a bug.
+        let ms = (DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
+        if ms >= 50 { Log.perf.notice("Event tap callback took \(ms) ms (type \(type.rawValue))") }
+        return result
     }
 }

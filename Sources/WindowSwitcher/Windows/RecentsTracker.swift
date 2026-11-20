@@ -49,6 +49,11 @@ final class RecentsTracker {
         }
     }
 
+    /// Ranks the given window first, e.g. the frontmost window looked up at trigger time.
+    func touchIfPresent(_ window: AXUIElement?) {
+        if let window { recents.touch(window) }
+    }
+
     func ordered(_ windows: [WindowInfo]) -> [WindowInfo] {
         recents.ordered(windows) { $0.axElement }
     }
@@ -61,8 +66,9 @@ final class RecentsTracker {
     // MARK: - AX observers
 
     private func touchFocusedWindow(of pid: pid_t) {
-        if let window = AXUIElement.application(pid).element(kAXFocusedWindowAttribute) {
-            recents.touch(window)
+        AXQueue.async {
+            guard let window = AXUIElement.application(pid).element(kAXFocusedWindowAttribute) else { return }
+            DispatchQueue.main.async { [weak self] in self?.recents.touch(window) }
         }
     }
 
@@ -106,8 +112,10 @@ final class RecentsTracker {
 
     fileprivate func handle(notification: String, element: AXUIElement) {
         // For both notifications the element is the newly focused/main window.
-        guard element.string(kAXRoleAttribute) == kAXWindowRole else { return }
-        recents.touch(element)
+        AXQueue.async {
+            guard element.string(kAXRoleAttribute) == kAXWindowRole else { return }
+            DispatchQueue.main.async { [weak self] in self?.recents.touch(element) }
+        }
     }
 }
 

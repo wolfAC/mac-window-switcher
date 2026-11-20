@@ -90,8 +90,8 @@ final class SwitcherController: HotkeyTapDelegate {
         switch effect {
         case .loadWindows:
             session += 1
-            screen = targetScreen()
-            loadWindows(session: session)
+            screen = nil
+            loadWindows(session: session, locateScreen: true)
 
         case .startHoldTimer:
             holdTimer?.cancel()
@@ -128,15 +128,23 @@ final class SwitcherController: HotkeyTapDelegate {
         session += 1
     }
 
-    private func loadWindows(session: Int) {
-        recents.touchFrontmost()
-        let options = WindowFilterOptions(
-            includeMinimized: preferences.includeMinimized,
-            includeHidden: preferences.includeHidden,
-            scope: preferences.scope,
-            activeScreenIndex: screen.flatMap { NSScreen.screens.firstIndex(of: $0) }
-        )
+    /// Called from the event tap's callback, so nothing here may wait on another app:
+    /// the frontmost window lookup (AX) runs on `AXQueue` before the catalog snapshot.
+    private func loadWindows(session: Int, locateScreen: Bool = false) {
+        let frontPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
         Task {
+            let focused = await Self.focusedWindow(of: frontPid)
+            guard session == self.session else { return }
+            // Make sure the window the user is looking at right now ranks first, even if a
+            // notification was missed.
+            recents.touchIfPresent(focused?.element)
+            if locateScreen { screen = targetScreen(focusedFrame: focused?.frame) }
+            let options = WindowFilterOptions(
+                includeMinimized: preferences.includeMinimized,
+                includeHidden: preferences.includeHidden,
+                scope: preferences.scope,
+                activeScreenIndex: screen.flatMap { NSScreen.screens.firstIndex(of: $0) }
+            )
             let snapshot = await catalog.snapshot(options: options)
             guard session == self.session else { return }
             recents.prune(alive: snapshot.all)
@@ -189,16 +197,31 @@ final class SwitcherController: HotkeyTapDelegate {
         )
     }
 
+    private struct FocusedWindow: @unchecked Sendable {
+        let element: AXUIElement
+        let frame: CGRect?
+    }
+
+    /// The frontmost app's focused window and its frame, looked up off the main thread.
+    private static func focusedWindow(of pid: pid_t?) async -> FocusedWindow? {
+        guard let pid else { return nil }
+        return await AXQueue.run {
+            guard let element = AXUIElement.application(pid).element(kAXFocusedWindowAttribute) else { return nil }
+            AXUIElementSetMessagingTimeout(element, axMessagingTimeout)
+            return FocusedWindow(element: element, frame: element.frame)
+        }
+    }
+
     /// The screen with the active window, or the one under the mouse.
-    private func targetScreen() -> NSScreen? {
+    private func targetScreen(focusedFrame: CGRect?) -> NSScreen? {
         switch preferences.overlayScreen {
         case .mouse:
             let mouse = NSEvent.mouseLocation
             return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         case .activeWindow:
-            guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-                  let frame = AXUIElement.application(pid).element(kAXFocusedWindowAttribute)?.frame,
-                  let index = WindowCatalog.screenIndex(for: frame, screens: WindowCatalog.screenFramesInCGSpace())
+            guard let focusedFrame,
+                  let index = WindowCatalog.screenIndex(for: focusedFrame, screens: WindowCatalog.screenFramesInCGSpace()),
+                  index < NSScreen.screens.count
             else { return NSScreen.main }
             return NSScreen.screens[index]
         }

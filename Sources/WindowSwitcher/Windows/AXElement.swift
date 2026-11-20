@@ -4,6 +4,31 @@ import ApplicationServices
 /// A frozen app then costs at most this long instead of hanging the switcher.
 let axMessagingTimeout: Float = 0.25
 
+enum AXTimeout {
+    /// Sets the process-wide default, which also covers elements AX hands back to us (a
+    /// focused window, an observer's element). Without it those wait up to 6 s.
+    static func applyGlobally() {
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), axMessagingTimeout)
+    }
+}
+
+/// Runs AX queries off the main thread. The event tap's callback runs on the main thread,
+/// so any AX wait there delays every keystroke system-wide and can get the tap disabled.
+enum AXQueue {
+    private static let queue = DispatchQueue(label: "AXQueries", qos: .userInteractive)
+
+    /// Serial, so results arrive in the order they were asked for.
+    static func async(_ work: @escaping () -> Void) {
+        queue.async(execute: work)
+    }
+
+    static func run<T>(_ work: @escaping () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: work()) }
+        }
+    }
+}
+
 extension AXUIElement {
     static func application(_ pid: pid_t) -> AXUIElement {
         let element = AXUIElementCreateApplication(pid)

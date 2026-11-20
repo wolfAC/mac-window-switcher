@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
     private lazy var settings = SettingsWindow(preferences: preferences)
     private lazy var updater = Updater(preferences: preferences)
     private let secureInput = SecureInputMonitor()
+    private var tapWatchdog: Timer?
+    private var wakeToken: NSObjectProtocol?
     private var statusMenu: StatusMenu?
 
     private(set) var isPaused = false
@@ -33,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
         updater.start()
         secureInput.onChange = { [weak self] in self?.statusMenu?.refreshIcon() }
         secureInput.start(interval: 2)
+        startTapWatchdog()
 
         let relaunchedFromOnboarding = PermissionsService.consumeRelaunchFlag()
         Log.app.notice("Launched (after onboarding relaunch: \(relaunchedFromOnboarding)), accessibility=\(self.permissions.accessibilityGranted) screenRecording=\(self.permissions.screenRecordingGranted) previews=\(self.permissions.previewsAllowed)")
@@ -65,6 +68,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, StatusMenuDelegate {
             controller.reset()
             tap.stop()
         }
+    }
+
+    /// The tap otherwise only starts when permissions change, so a failed start at launch or
+    /// a tap lost across sleep would leave the native Cmd+Tab in charge until a relaunch.
+    private func startTapWatchdog() {
+        tapWatchdog = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.ensureTapHealthy(reason: "watchdog") }
+        }
+        wakeToken = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.ensureTapHealthy(reason: "wake") }
+        }
+    }
+
+    private func ensureTapHealthy(reason: String) {
+        guard permissions.accessibilityGranted, !isPaused, !tap.isHealthy else { return }
+        let restarted = tap.restart()
+        Log.input.notice("Event tap was down (\(reason, privacy: .public)); restart \(restarted ? "succeeded" : "failed")")
     }
 
     // MARK: StatusMenuDelegate

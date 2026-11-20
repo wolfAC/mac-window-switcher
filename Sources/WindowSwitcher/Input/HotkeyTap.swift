@@ -28,6 +28,20 @@ final class HotkeyTap {
 
     var isRunning: Bool { tap != nil }
 
+    /// False when the tap should be catching keys but isn't: never created, invalidated
+    /// (e.g. across sleep or a WindowServer restart), or left disabled by macOS.
+    var isHealthy: Bool {
+        guard let tap else { return false }
+        return CFMachPortIsValid(tap) && CGEvent.tapIsEnabled(tap: tap)
+    }
+
+    /// Recreates the tap from scratch.
+    @discardableResult
+    func restart() -> Bool {
+        stop()
+        return start()
+    }
+
     init(bindings: @escaping () -> [KeyBinding]) {
         self.bindings = bindings
     }

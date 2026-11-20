@@ -97,7 +97,7 @@ struct SettingsView: View {
             } header: {
                 Text("Window names")
             } footer: {
-                Text("Project folder shows the part of the title after the last “—”, such as the worktree in VS Code. Browser profile shows the Chrome profile. Apps not listed show the full window title.")
+                Text("Project folder shows the part of the title after the last “—”, such as the worktree in VS Code. Browser profile shows the Chrome profile. Terminal tab drops the user name, processes and window size. Apps not listed show the full window title.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -169,6 +169,7 @@ private struct NamingRuleRow: View {
                     Text("App name").tag(NamingStyle.appName)
                     Text("Project folder").tag(NamingStyle.projectFolder)
                     Text("Browser profile").tag(NamingStyle.browserProfile)
+                    Text("Terminal tab").tag(NamingStyle.terminal)
                     Text("Custom pattern").tag(NamingStyle.custom)
                 }
                 .labelsHidden()

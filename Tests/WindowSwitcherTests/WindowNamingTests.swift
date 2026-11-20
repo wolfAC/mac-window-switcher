@@ -21,6 +21,16 @@ import Testing
         #expect(name("GitHub") == "Google Chrome")
     }
 
+    @Test func terminalShowsTabTitleOnly() {
+        let name = { WindowNaming.name(title: $0, appName: "Terminal", style: .terminal, userName: "wolf") }
+        #expect(name("wolf — ◑ Mac alt-tab window switching — caffeinate ◂ claude — 80×24") == "Mac alt-tab window switching")
+        #expect(name("wolf — ✳ RemoveMacAI.zip — caffeinate ◂ claude — 80×24") == "RemoveMacAI.zip")
+        #expect(name("wolf — -zsh — 80×24") == "-zsh")
+        #expect(name("wolf — ~/Workspace — vim notes.md — 120×40") == "~/Workspace")
+        // Only the size left: fall back to the full title rather than blank.
+        #expect(name("wolf — 80×24") == "wolf — 80×24")
+    }
+
     @Test func appNameAndTitle() {
         #expect(WindowNaming.name(title: "@someone - Discord", appName: "Discord", style: .appName) == "Discord")
         #expect(WindowNaming.name(title: "Inbox", appName: "Mail", style: .title) == "Inbox")

@@ -12,6 +12,9 @@ public enum NamingStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     /// The profile Chrome-style browsers append to the title
     /// ("Page - Google Chrome - Work" → "Work"); the app name when there's only one profile.
     case browserProfile
+    /// Terminal.app's tab title without the user name, running processes and window size
+    /// ("wolf — ✳ My session — caffeinate ◂ claude — 80×24" → "My session").
+    case terminal
     /// The first capture group (or the whole match) of a regular expression.
     case custom
 
@@ -40,19 +43,21 @@ public struct NamingRule: Codable, Identifiable, Equatable, Sendable {
         NamingRule(bundleID: "com.microsoft.VSCode", appName: "Visual Studio Code", style: .projectFolder),
         NamingRule(bundleID: "com.google.Chrome", appName: "Google Chrome", style: .browserProfile),
         NamingRule(bundleID: "com.hnc.Discord", appName: "Discord", style: .appName),
+        NamingRule(bundleID: "com.apple.Terminal", appName: "Terminal", style: .terminal),
     ]
 }
 
 public enum WindowNaming {
     /// The name to show. Falls back to the full title, then the app name, whenever a rule
     /// finds nothing, so a window is never left blank.
-    public static func name(title: String, appName: String, style: NamingStyle, pattern: String = "") -> String {
+    public static func name(title: String, appName: String, style: NamingStyle, pattern: String = "", userName: String = NSUserName()) -> String {
         let fallback = title.isEmpty ? appName : title
         let result: String? = switch style {
         case .title: fallback
         case .appName: appName
         case .projectFolder: projectFolder(in: title, appName: appName)
         case .browserProfile: browserProfile(in: title, appName: appName)
+        case .terminal: terminalTitle(in: title, userName: userName)
         case .custom: match(pattern, in: title)
         }
         let trimmed = result?.trimmingCharacters(in: .whitespaces) ?? ""
@@ -76,6 +81,22 @@ public enum WindowNaming {
         }
         // Only one profile: Chrome adds no suffix, so there's no profile to tell apart.
         return appName
+    }
+
+    static func terminalTitle(in title: String, userName: String) -> String? {
+        var parts = title.components(separatedBy: " — ").map { $0.trimmingCharacters(in: .whitespaces) }
+        if parts.first == userName { parts.removeFirst() }
+        parts.removeAll { part in
+            part.isEmpty
+                || part.range(of: #"^\d+×\d+$"#, options: .regularExpression) != nil // window size
+                || part.contains(" ◂ ") // process chain, e.g. "caffeinate ◂ claude"
+        }
+        guard var name = parts.first else { return nil }
+        // Status icons programs put in front of the title (Claude Code's ✳ / spinner, etc.).
+        if let range = name.range(of: #"^[^\p{L}\p{N}\-~/.]+\s+"#, options: .regularExpression) {
+            name.removeSubrange(range)
+        }
+        return name
     }
 
     static func match(_ pattern: String, in title: String) -> String? {

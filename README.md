@@ -33,6 +33,7 @@ Each window is shown by its title, unless its app has a rule under **Settings �
 | App name | Just the app's name | Discord |
 | Project folder | The part after the last “—”, such as the worktree, without the open file | VS Code |
 | Browser profile | The Chrome profile name | Google Chrome |
+| Terminal tab | The tab title, without the user name, running processes and window size | Terminal |
 | Custom pattern | The first `(group)` of a regular expression | — |
 
 Use **Add App** to give any running app a rule. If a rule finds nothing, the full title is shown.

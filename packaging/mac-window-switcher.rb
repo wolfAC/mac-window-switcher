@@ -2,8 +2,8 @@
 # Update version + sha256 for each release (scripts/release.sh prints both):
 #   shasum -a 256 build/WindowSwitcher.zip
 cask "mac-window-switcher" do
-  version "0.3.1"
-  sha256 "5bed94c3efc6c2e472fcec2de95789c59f0e3f8d11205cc674fbb214ce6cd4ec"
+  version "0.3.2"
+  sha256 "b988b97e71989394798322955bb72affa5f0065b0ce246722070e60610a7d29c"
 
   url "https://github.com/wolfAC/mac-window-switcher/releases/download/v#{version}/WindowSwitcher.zip"
   name "Window Switcher"

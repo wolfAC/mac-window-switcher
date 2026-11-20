@@ -44,6 +44,8 @@ final class Preferences: ObservableObject {
     @Published var scope: WindowScope { didSet { save(scope.rawValue, "scope") } }
     @Published var includeMinimized: Bool { didSet { save(includeMinimized, "includeMinimized") } }
     @Published var includeHidden: Bool { didSet { save(includeHidden, "includeHidden") } }
+    /// Keep each app's windows next to each other instead of strictly most recent first.
+    @Published var groupByApp: Bool { didSet { save(groupByApp, "groupByApp") } }
     @Published var thumbnailSize: ThumbnailSize { didSet { save(thumbnailSize.rawValue, "thumbnailSize") } }
     @Published var showTitles: Bool { didSet { save(showTitles, "showTitles") } }
     @Published var appearance: AppearanceMode { didSet { save(appearance.rawValue, "appearance") } }
@@ -76,6 +78,7 @@ final class Preferences: ObservableObject {
         scope = value("scope", WindowScope.all)
         includeMinimized = bool("includeMinimized", true)
         includeHidden = bool("includeHidden", true)
+        groupByApp = bool("groupByApp", false)
         thumbnailSize = value("thumbnailSize", ThumbnailSize.medium)
         showTitles = bool("showTitles", true)
         appearance = value("appearance", AppearanceMode.auto)

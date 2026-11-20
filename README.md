@@ -21,9 +21,9 @@ A free, open-source Cmd+Tab replacement for macOS that shows every window, not j
 | Q | Quit the app |
 | Esc | Cancel |
 
-Windows on every Space are listed individually, never grouped by app. Finding windows on other Spaces and switching to them uses private macOS APIs (`_AXUIElementCreateWithRemoteToken`, `_AXUIElementGetWindow`, SkyLight); each has a public fallback, and choosing **Current Space only** in Settings avoids the off-Space scan entirely. Previews of windows on other Spaces may show the app icon until you've visited that Space.
+Windows on every Space are listed individually, most recently used first. To keep each app's windows next to each other (say, four VS Code windows, then two Chrome windows), turn on **Keep each app's windows together** in Settings. Apps are then ordered by their most recent window, and a quick ⌘Tab still goes back to the previous window. Finding windows on other Spaces and switching to them uses private macOS APIs (`_AXUIElementCreateWithRemoteToken`, `_AXUIElementGetWindow`, SkyLight); each has a public fallback, and choosing **Current Space only** in Settings avoids the off-Space scan entirely. Previews of windows on other Spaces may show the app icon until you've visited that Space.
 
-The shortcut (⌘, ⌥ or ⌃ + Tab, plus an optional second one), which windows appear, preview size, theme, hold delay and launch at login are all in **Settings…** in the menu bar.
+The shortcut (⌘, ⌥ or ⌃ + Tab, plus an optional second one), which windows appear, grouping by app, preview size, theme, hold delay and launch at login are all in **Settings…** in the menu bar.
 
 ## Install a downloaded release
 

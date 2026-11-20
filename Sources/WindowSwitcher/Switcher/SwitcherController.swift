@@ -150,11 +150,20 @@ final class SwitcherController: HotkeyTapDelegate {
             recents.prune(alive: snapshot.all)
             thumbnails.prune(keeping: Set(snapshot.all.compactMap(\.windowID)))
             let selected = state.selection.flatMap { $0 < windows.count ? windows[$0].axElement : nil }
-            windows = recents.ordered(snapshot.visible)
+            let recent = recents.ordered(snapshot.visible)
+            var previous = 1
+            if preferences.groupByApp {
+                windows = AppGrouping.grouped(recent) { $0.pid }
+                if recent.count > 1, let index = windows.firstIndex(where: { $0.axElement == recent[1].axElement }) {
+                    previous = index
+                }
+            } else {
+                windows = recent
+            }
             // Start captures now, not when the overlay appears: the hold delay gives them a
             // head start, and even a quick tap that never shows the overlay warms the cache.
             refreshThumbnails()
-            send(.loaded(count: windows.count))
+            send(.loaded(count: windows.count, previous: previous))
             // A reload can insert windows; stay on the one that was selected if it's still there.
             if let selected, let index = windows.firstIndex(where: { $0.axElement == selected }) {
                 send(.select(index: index))

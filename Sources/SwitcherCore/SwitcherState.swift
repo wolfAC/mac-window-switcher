@@ -7,7 +7,10 @@ public enum SwitcherEvent: Equatable, Sendable {
     case escape
     case holdElapsed
     /// The window list for this session is ready (or was reloaded after an action).
-    case loaded(count: Int)
+    /// `previous` is where the previously used window sits in the list: 1 when the list is in
+    /// most-recently-used order, elsewhere when windows are grouped by app. A forward session
+    /// starts there, so a quick tap still jumps back to the previous window.
+    case loaded(count: Int, previous: Int = 1)
     /// Arrow keys: relative move with wrap-around.
     case move(by: Int)
     /// Arrow keys between rows, or mouse hover: absolute selection.
@@ -38,6 +41,7 @@ public struct SwitcherState: Equatable, Sendable {
     private var steps = 0
     private var holdElapsed = false
     private var pendingCommit = false
+    private var startedForward = false
 
     public init() {}
 
@@ -54,6 +58,7 @@ public struct SwitcherState: Equatable, Sendable {
                 self = SwitcherState()
                 isActive = true
                 steps = delta
+                startedForward = !reverse
                 return [.loadWindows, .startHoldTimer]
             }
             steps += delta
@@ -64,12 +69,15 @@ public struct SwitcherState: Equatable, Sendable {
             holdElapsed = true
             return showIfReady()
 
-        case .loaded(let newCount):
+        case .loaded(let newCount, let previous):
             guard isActive else { return [] }
             let wasLoaded = count != nil
             if wasLoaded, let current = selection {
                 // A reload after closing/quitting: stay on the same slot, clamped.
                 steps = min(current, max(newCount - 1, 0))
+            } else if startedForward, previous > 0, previous < newCount {
+                // Tabs pressed so far count on from the previous window, not from slot 1.
+                steps += previous - 1
             }
             count = newCount
             if pendingCommit { return finish(commit: true) }

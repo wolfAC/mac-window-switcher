@@ -56,6 +56,9 @@ struct SettingsView: View {
                 }
                 Toggle("Include minimised windows", isOn: $preferences.includeMinimized)
                 Toggle("Include windows of hidden apps", isOn: $preferences.includeHidden)
+                Toggle("Keep each app's windows together", isOn: $preferences.groupByApp)
+                Text("Apps are ordered by their most recent window. A quick tap still goes back to the previous window.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Appearance") {

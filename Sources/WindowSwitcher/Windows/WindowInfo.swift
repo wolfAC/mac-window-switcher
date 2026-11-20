@@ -8,6 +8,7 @@ struct WindowInfo: Identifiable {
     let axElement: AXUIElement
     let windowID: CGWindowID?
     let pid: pid_t
+    let bundleID: String?
     let appName: String
     let appIcon: NSImage?
     let title: String
@@ -17,6 +18,8 @@ struct WindowInfo: Identifiable {
     let isAppHidden: Bool
     let isOnCurrentSpace: Bool
     let screenIndex: Int?
+    /// Set from the user's naming rules (Settings → Window names); nil shows the title.
+    var customName: String? = nil
 
     /// Minimised windows and hidden apps have nothing to capture. Windows on other Spaces
     /// are attempted; if ScreenCaptureKit can't capture them they keep their last preview or icon.
@@ -25,7 +28,7 @@ struct WindowInfo: Identifiable {
     }
 
     var displayTitle: String {
-        title.isEmpty ? appName : title
+        customName ?? (title.isEmpty ? appName : title)
     }
 
     var aspectRatio: CGFloat {

@@ -150,7 +150,11 @@ final class SwitcherController: HotkeyTapDelegate {
             recents.prune(alive: snapshot.all)
             thumbnails.prune(keeping: Set(snapshot.all.compactMap(\.windowID)))
             let selected = state.selection.flatMap { $0 < windows.count ? windows[$0].axElement : nil }
-            let recent = recents.ordered(snapshot.visible)
+            let recent = recents.ordered(snapshot.visible).map { window in
+                var window = window
+                window.customName = preferences.customName(for: window)
+                return window
+            }
             var previous = 1
             if preferences.groupByApp {
                 windows = AppGrouping.grouped(recent) { $0.pid }

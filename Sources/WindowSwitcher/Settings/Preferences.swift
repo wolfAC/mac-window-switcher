@@ -54,6 +54,10 @@ final class Preferences: ObservableObject {
     @Published var overlayScreen: OverlayScreen { didSet { save(overlayScreen.rawValue, "overlayScreen") } }
     @Published var hasCompletedOnboarding: Bool { didSet { save(hasCompletedOnboarding, "hasCompletedOnboarding") } }
     @Published var checkForUpdates: Bool { didSet { save(checkForUpdates, "checkForUpdates") } }
+    /// Per-app naming rules (Settings → Window names). Apps without one show the window title.
+    @Published var namingRules: [NamingRule] {
+        didSet { if let data = try? JSONEncoder().encode(namingRules) { save(data, "namingRules") } }
+    }
 
     var lastUpdateCheck: Date? {
         get { defaults.object(forKey: "lastUpdateCheck") as? Date }
@@ -86,10 +90,18 @@ final class Preferences: ObservableObject {
         overlayScreen = value("overlayScreen", OverlayScreen.activeWindow)
         hasCompletedOnboarding = bool("hasCompletedOnboarding", false)
         checkForUpdates = bool("checkForUpdates", true)
+        namingRules = defaults.data(forKey: "namingRules").flatMap { try? JSONDecoder().decode([NamingRule].self, from: $0) }
+            ?? NamingRule.defaults
     }
 
     private func save(_ value: Any, _ key: String) {
         defaults.set(value, forKey: key)
+    }
+
+    /// The window's name under the user's rule for its app, or nil to show the title.
+    func customName(for window: WindowInfo) -> String? {
+        guard let bundleID = window.bundleID, let rule = namingRules.first(where: { $0.bundleID == bundleID }) else { return nil }
+        return WindowNaming.name(title: window.title, appName: window.appName, style: rule.style, pattern: rule.pattern)
     }
 
     var bindings: [KeyBinding] {

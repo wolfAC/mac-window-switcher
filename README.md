@@ -23,6 +23,20 @@ A free, open-source Cmd+Tab replacement for macOS that shows every window, not j
 
 Windows on every Space are listed individually, most recently used first. To keep each app's windows next to each other (say, four VS Code windows, then two Chrome windows), turn on **Keep each app's windows together** in Settings. Apps are then ordered by their most recent window, and a quick ⌘Tab still goes back to the previous window. Finding windows on other Spaces and switching to them uses private macOS APIs (`_AXUIElementCreateWithRemoteToken`, `_AXUIElementGetWindow`, SkyLight); each has a public fallback, and choosing **Current Space only** in Settings avoids the off-Space scan entirely. Previews of windows on other Spaces may show the app icon until you've visited that Space.
 
+## Window names
+
+Each window is shown by its title, unless its app has a rule under **Settings → Window names**:
+
+| Rule | Shows | Default for |
+|---|---|---|
+| Window title | The full title | Every app without a rule |
+| App name | Just the app's name | Discord |
+| Project folder | The part after the last “—”, such as the worktree, without the open file | VS Code |
+| Browser profile | The Chrome profile name | Google Chrome |
+| Custom pattern | The first `(group)` of a regular expression | — |
+
+Use **Add App** to give any running app a rule. If a rule finds nothing, the full title is shown.
+
 The shortcut (⌘, ⌥ or ⌃ + Tab, plus an optional second one), which windows appear, grouping by app, preview size, theme, hold delay and launch at login are all in **Settings…** in the menu bar.
 
 ## Install a downloaded release

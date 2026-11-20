@@ -27,6 +27,7 @@ final class WindowCatalog {
     // Plain values handed to the background queue. NSImage and AXUIElement are immutable here.
     private struct AppRef: @unchecked Sendable {
         let pid: pid_t
+        let bundleID: String?
         let name: String
         let icon: NSImage?
         let isHidden: Bool
@@ -46,7 +47,7 @@ final class WindowCatalog {
         let ownPid = ProcessInfo.processInfo.processIdentifier
         let apps = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && !$0.isTerminated && $0.processIdentifier != ownPid }
-            .map { AppRef(pid: $0.processIdentifier, name: $0.localizedName ?? "", icon: $0.icon, isHidden: $0.isHidden) }
+            .map { AppRef(pid: $0.processIdentifier, bundleID: $0.bundleIdentifier, name: $0.localizedName ?? "", icon: $0.icon, isHidden: $0.isHidden) }
         let screens = Self.screenFramesInCGSpace()
         let cache = options.scope == .currentSpace ? nil : offSpace
 
@@ -215,6 +216,7 @@ final class WindowCatalog {
                 axElement: element,
                 windowID: match?.id,
                 pid: app.pid,
+                bundleID: app.bundleID,
                 appName: app.name,
                 appIcon: app.icon,
                 title: title,

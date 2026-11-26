@@ -15,11 +15,16 @@ A free, open-source Cmd+Tab replacement for macOS that shows every window, not j
 | Tab / Shift+Tab | Next / previous window |
 | Arrow keys | Move around the grid |
 | Mouse | Hover to select, click to switch |
-| W | Close the window |
-| M | Minimise the window |
-| H | Hide the app |
-| Q | Quit the app |
+| Letters, numbers | Filter the windows by name, app or title |
+| Delete | Remove the last typed character |
+| Return | Switch to the selected window |
+| Shift+W | Close the window |
+| Shift+M | Minimise the window |
+| Shift+H | Hide the app |
+| Shift+Q | Quit the app |
 | Esc | Cancel |
+
+Start typing while the switcher is open to narrow the list, for example `1056` for a worktree or `wolf` for a Chrome profile. Once you type, the switcher stays open after you let go of ⌘, so you can keep typing; press Return to switch, Esc or click elsewhere to cancel.
 
 Windows on every Space are listed individually, most recently used first. To keep each app's windows next to each other (say, four VS Code windows, then two Chrome windows), turn on **Keep each app's windows together** in Settings. Apps are then ordered by their most recent window, and a quick ⌘Tab still goes back to the previous window. Finding windows on other Spaces and switching to them uses private macOS APIs (`_AXUIElementCreateWithRemoteToken`, `_AXUIElementGetWindow`, SkyLight); each has a public fallback, and choosing **Current Space only** in Settings avoids the off-Space scan entirely. Previews of windows on other Spaces may show the app icon until you've visited that Space.
 

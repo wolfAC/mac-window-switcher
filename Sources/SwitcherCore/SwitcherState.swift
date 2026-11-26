@@ -17,6 +17,11 @@ public enum SwitcherEvent: Equatable, Sendable {
     case select(index: Int)
     /// Mouse click on a cell.
     case click(index: Int)
+    /// The search text changed and the list now has `count` matches. Keeps the overlay open
+    /// after the modifier is released, and selects the first match.
+    case filtered(count: Int)
+    /// Return: switch to the selected window.
+    case confirm
 }
 
 public enum SwitcherEffect: Equatable, Sendable {
@@ -42,6 +47,9 @@ public struct SwitcherState: Equatable, Sendable {
     private var holdElapsed = false
     private var pendingCommit = false
     private var startedForward = false
+    /// Set once the user starts typing: releasing the modifier no longer commits, so they can
+    /// let go and type; Return, a click or Escape ends the session.
+    public private(set) var isPinned = false
 
     public init() {}
 
@@ -81,12 +89,13 @@ public struct SwitcherState: Equatable, Sendable {
             }
             count = newCount
             if pendingCommit { return finish(commit: true) }
-            if newCount == 0 { return isVisible ? finish(commit: false) : [] }
+            // While searching, no matches is a valid state: keep the overlay up.
+            if newCount == 0 { return isPinned ? [.show] : isVisible ? finish(commit: false) : [] }
             if isVisible { return [.show] + selectionEffect() }
             return showIfReady()
 
         case .released:
-            guard isActive else { return [] }
+            guard isActive, !isPinned else { return [] }
             if count == nil {
                 pendingCommit = true
                 return []
@@ -96,6 +105,21 @@ public struct SwitcherState: Equatable, Sendable {
         case .escape:
             guard isActive else { return [] }
             return finish(commit: false)
+
+        case .filtered(let newCount):
+            guard isActive, isVisible else { return [] }
+            isPinned = true
+            count = newCount
+            steps = 0
+            return [.show] + selectionEffect()
+
+        case .confirm:
+            guard isActive else { return [] }
+            if count == nil {
+                pendingCommit = true
+                return []
+            }
+            return finish(commit: true)
 
         case .move(let delta):
             guard isActive, isVisible, let current = selection else { return [] }

@@ -1,5 +1,5 @@
+import AppKit
 import CoreGraphics
-import Foundation
 
 @MainActor
 protocol HotkeyTapDelegate: AnyObject {
@@ -10,6 +10,12 @@ protocol HotkeyTapDelegate: AnyObject {
     func hotkeyEscape()
     func hotkeyArrow(_ keyCode: CGKeyCode)
     func hotkeyCommand(_ command: WindowCommand)
+    /// Text typed while the overlay is open, for type-to-filter.
+    func hotkeyType(_ text: String)
+    func hotkeyBackspace()
+    func hotkeyConfirm()
+    /// Tab without the modifier (after it was released while searching).
+    func hotkeyMove(by delta: Int)
 }
 
 /// A session event tap that catches the trigger (e.g. Cmd+Tab) before macOS's own switcher.
@@ -129,24 +135,48 @@ final class HotkeyTap {
         guard delegate.switcherIsActive else { return false }
         guard isDown else { return true }
 
+        let visible = delegate.switcherIsVisible
+        // Window commands need Shift, so plain letters are free for type-to-filter.
+        let shift = flags.contains(.maskShift)
         switch keyCode {
         case KeyCode.escape:
             heldModifier = nil
             delegate.hotkeyEscape()
         case KeyCode.leftArrow, KeyCode.rightArrow, KeyCode.upArrow, KeyCode.downArrow:
             delegate.hotkeyArrow(keyCode)
-        case KeyCode.w where delegate.switcherIsVisible:
+        case KeyCode.returnKey, KeyCode.keypadEnter:
+            heldModifier = nil
+            delegate.hotkeyConfirm()
+        case KeyCode.tab:
+            delegate.hotkeyMove(by: shift ? -1 : 1)
+        case KeyCode.delete where visible:
+            delegate.hotkeyBackspace()
+        case KeyCode.w where visible && shift:
             delegate.hotkeyCommand(.close)
-        case KeyCode.m where delegate.switcherIsVisible:
+        case KeyCode.m where visible && shift:
             delegate.hotkeyCommand(.minimize)
-        case KeyCode.q where delegate.switcherIsVisible:
+        case KeyCode.q where visible && shift:
             delegate.hotkeyCommand(.quit)
-        case KeyCode.h where delegate.switcherIsVisible:
+        case KeyCode.h where visible && shift:
             delegate.hotkeyCommand(.hide)
         default:
-            break
+            if visible, let text = Self.typedText(event) {
+                delegate.hotkeyType(text)
+            }
         }
         return true
+    }
+}
+
+extension HotkeyTap {
+    /// The printable characters a key event types, ignoring the held modifier (so Cmd+N
+    /// types "n"). Nil for keys that type nothing printable.
+    static func typedText(_ event: CGEvent) -> String? {
+        guard let characters = NSEvent(cgEvent: event)?.charactersIgnoringModifiers?.lowercased(),
+              !characters.isEmpty,
+              characters.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) && $0.value < 0xF700 })
+        else { return nil }
+        return characters
     }
 }
 

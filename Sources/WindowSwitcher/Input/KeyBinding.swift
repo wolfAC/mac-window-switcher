@@ -11,6 +11,9 @@ enum KeyCode {
     static let m: CGKeyCode = 46
     static let q: CGKeyCode = 12
     static let h: CGKeyCode = 4
+    static let returnKey: CGKeyCode = 36
+    static let keypadEnter: CGKeyCode = 76
+    static let delete: CGKeyCode = 51
 }
 
 enum TriggerModifier: String, CaseIterable, Identifiable {

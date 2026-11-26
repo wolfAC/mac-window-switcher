@@ -126,3 +126,84 @@ import Testing
         #expect(state.count == nil)
     }
 }
+
+@Suite struct TypeToFilterTests {
+    private func visibleState(count: Int = 5) -> SwitcherState {
+        var state = SwitcherState()
+        _ = state.handle(.trigger(reverse: false))
+        _ = state.handle(.loaded(count: count))
+        _ = state.handle(.holdElapsed)
+        return state
+    }
+
+    @Test func filteringSelectsFirstMatchAndPins() {
+        var state = visibleState()
+        #expect(state.handle(.filtered(count: 2)) == [.show, .updateSelection(0)])
+        #expect(state.isPinned)
+    }
+
+    @Test func releasingModifierWhileSearchingKeepsItOpen() {
+        var state = visibleState()
+        _ = state.handle(.filtered(count: 2))
+        #expect(state.handle(.released) == [])
+        #expect(state.isActive && state.isVisible)
+        #expect(state.handle(.confirm) == [.hide, .commit(index: 0)])
+        #expect(!state.isActive)
+    }
+
+    @Test func noMatchesStaysOpenAndReturnCancels() {
+        var state = visibleState()
+        #expect(state.handle(.filtered(count: 0)) == [.show])
+        #expect(state.isVisible)
+        // A reload that still finds nothing doesn't close it either.
+        #expect(state.handle(.loaded(count: 0)) == [.show])
+        #expect(state.handle(.confirm) == [.hide, .cancel])
+    }
+
+    @Test func escapeCancelsSearch() {
+        var state = visibleState()
+        _ = state.handle(.filtered(count: 3))
+        #expect(state.handle(.escape) == [.hide, .cancel])
+        #expect(!state.isPinned)
+    }
+
+    @Test func filterIgnoredBeforeOverlayShows() {
+        var state = SwitcherState()
+        _ = state.handle(.trigger(reverse: false))
+        #expect(state.handle(.filtered(count: 1)) == [])
+        #expect(!state.isPinned)
+    }
+
+    @Test func returnWithoutSearchingCommitsSelection() {
+        var state = visibleState()
+        #expect(state.handle(.confirm) == [.hide, .commit(index: 1)])
+    }
+
+    @Test func tabMovesThroughMatches() {
+        var state = visibleState()
+        _ = state.handle(.filtered(count: 3))
+        #expect(state.handle(.move(by: 1)) == [.updateSelection(1)])
+        #expect(state.handle(.move(by: -2)) == [.updateSelection(2)])
+    }
+}
+
+@Suite struct WindowSearchTests {
+    @Test func matchesAnyFieldIgnoringCaseAndAccents() {
+        #expect(WindowSearch.matches("1056", fields: ["NINTO-1056", "Code", "x.js — NINTO-1056"]))
+        #expect(WindowSearch.matches("WOLF", fields: ["Wolf", "Google Chrome", ""]))
+        #expect(WindowSearch.matches("cafe", fields: ["Café menu"]))
+        #expect(!WindowSearch.matches("1057", fields: ["NINTO-1056", "Code"]))
+    }
+
+    @Test func everyTermMustMatchSomewhere() {
+        let fields = ["NINTO-870", "Code", "posts.js — NINTO-870"]
+        #expect(WindowSearch.matches("code 870", fields: fields))
+        #expect(WindowSearch.matches("posts 870", fields: fields))
+        #expect(!WindowSearch.matches("code 1056", fields: fields))
+    }
+
+    @Test func emptyQueryMatchesAll() {
+        #expect(WindowSearch.matches("", fields: ["anything"]))
+        #expect(WindowSearch.matches("   ", fields: ["anything"]))
+    }
+}

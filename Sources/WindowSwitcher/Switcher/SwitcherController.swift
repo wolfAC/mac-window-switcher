@@ -6,7 +6,13 @@ import SwitcherCore
 @MainActor
 final class SwitcherController: HotkeyTapDelegate {
     private var state = SwitcherState()
+    /// Every window in this session, in display order.
+    private var allWindows: [WindowInfo] = []
+    /// What's on screen: `allWindows` narrowed by `query`. Indices everywhere refer to this.
     private var windows: [WindowInfo] = []
+    /// Type-to-filter text.
+    private var query = ""
+    private var outsideClickMonitor: Any?
     private var session = 0
     private var holdTimer: DispatchWorkItem?
     private var triggeredAt: Date?
@@ -73,6 +79,32 @@ final class SwitcherController: HotkeyTapDelegate {
         run(command)
     }
 
+    func hotkeyType(_ text: String) {
+        setQuery(query + text)
+    }
+
+    func hotkeyBackspace() {
+        guard !query.isEmpty else { return }
+        setQuery(String(query.dropLast()))
+    }
+
+    func hotkeyConfirm() { send(.confirm) }
+
+    func hotkeyMove(by delta: Int) { send(.move(by: delta)) }
+
+    private func setQuery(_ newQuery: String) {
+        guard state.isVisible else { return }
+        query = newQuery
+        windows = filtered(allWindows)
+        Log.switcher.debug("Filter \"\(newQuery, privacy: .private)\" → \(self.windows.count) of \(self.allWindows.count)")
+        send(.filtered(count: windows.count))
+    }
+
+    private func filtered(_ list: [WindowInfo]) -> [WindowInfo] {
+        guard !query.isEmpty else { return list }
+        return list.filter { WindowSearch.matches(query, fields: [$0.displayTitle, $0.title, $0.appName]) }
+    }
+
     /// Cancels any open session, e.g. when the tap is paused.
     func reset() {
         if state.isActive { send(.escape) }
@@ -107,6 +139,7 @@ final class SwitcherController: HotkeyTapDelegate {
 
         case .hide:
             panel.dismiss()
+            stopOutsideClickMonitor()
 
         case .commit(let index):
             endSession()
@@ -126,6 +159,22 @@ final class SwitcherController: HotkeyTapDelegate {
         holdTimer = nil
         thumbnails.cancel()
         session += 1
+        query = ""
+        stopOutsideClickMonitor()
+    }
+
+    /// While searching the overlay stays open without the modifier held, and it swallows
+    /// every key; a click anywhere else closes it so it can never trap the keyboard.
+    private func startOutsideClickMonitor() {
+        guard outsideClickMonitor == nil else { return }
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated { self?.send(.escape) }
+        }
+    }
+
+    private func stopOutsideClickMonitor() {
+        if let outsideClickMonitor { NSEvent.removeMonitor(outsideClickMonitor) }
+        outsideClickMonitor = nil
     }
 
     /// Called from the event tap's callback, so nothing here may wait on another app:
@@ -157,13 +206,14 @@ final class SwitcherController: HotkeyTapDelegate {
             }
             var previous = 1
             if preferences.groupByApp {
-                windows = AppGrouping.grouped(recent) { $0.pid }
-                if recent.count > 1, let index = windows.firstIndex(where: { $0.axElement == recent[1].axElement }) {
+                allWindows = AppGrouping.grouped(recent) { $0.pid }
+                if recent.count > 1, let index = allWindows.firstIndex(where: { $0.axElement == recent[1].axElement }) {
                     previous = index
                 }
             } else {
-                windows = recent
+                allWindows = recent
             }
+            windows = filtered(allWindows)
             // Start captures now, not when the overlay appears: the hold delay gives them a
             // head start, and even a quick tap that never shows the overlay warms the cache.
             refreshThumbnails()
@@ -182,8 +232,9 @@ final class SwitcherController: HotkeyTapDelegate {
     private func show() {
         guard let screen = screen ?? NSScreen.main else { return }
         let metrics = metrics
+        startOutsideClickMonitor()
         panel.present(
-            windows: windows, metrics: metrics, showTitles: preferences.showTitles, on: screen,
+            windows: windows, query: query, total: allWindows.count, metrics: metrics, showTitles: preferences.showTitles, on: screen,
             appearance: preferences.appearance.nsAppearance, thumbnail: { [thumbnails] in thumbnails.cached($0.windowID) }
         )
         // Only the session's first show: later ones are re-renders (a reload while open).

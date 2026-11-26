@@ -77,8 +77,8 @@ private final class WindowCellView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let screenLabel = NSTextField(labelWithString: "")
     private let trafficLights = TrafficLightGroup()
-    private let quitButton = TrafficLightButton(kind: .quit, help: String(localized: "Quit app (Q)"))
-    private let hideButton = TrafficLightButton(kind: .hide, help: String(localized: "Hide app (H)"))
+    private let quitButton = TrafficLightButton(kind: .quit, help: String(localized: "Quit app (⇧Q)"))
+    private let hideButton = TrafficLightButton(kind: .hide, help: String(localized: "Hide app (⇧H)"))
     private var appIcon: NSImage?
     private var label = ""
 
@@ -212,8 +212,8 @@ private final class TrafficLightGroup: NSView {
 
     init() {
         buttons = [
-            TrafficLightButton(kind: .close, help: String(localized: "Close window (W)")),
-            TrafficLightButton(kind: .minimize, help: String(localized: "Minimise window (M)")),
+            TrafficLightButton(kind: .close, help: String(localized: "Close window (⇧W)")),
+            TrafficLightButton(kind: .minimize, help: String(localized: "Minimise window (⇧M)")),
             TrafficLightButton(kind: .fullScreen, help: String(localized: "Switch to this window in full screen")),
         ]
         let width = Self.diameter * 3 + Self.spacing * 2
